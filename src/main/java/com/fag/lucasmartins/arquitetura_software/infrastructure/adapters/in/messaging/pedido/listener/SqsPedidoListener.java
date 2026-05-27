@@ -6,10 +6,14 @@ import com.fag.lucasmartins.arquitetura_software.application.ports.in.service.Pe
 import com.fag.lucasmartins.arquitetura_software.core.domain.bo.PedidoBO;
 import com.fag.lucasmartins.arquitetura_software.infrastructure.adapters.in.messaging.pedido.dto.PedidoSqsEventDTO;
 import com.fag.lucasmartins.arquitetura_software.infrastructure.adapters.in.messaging.pedido.mapper.PedidoSqsMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SqsPedidoListener {
+
+    private static final Logger log = LoggerFactory.getLogger(SqsPedidoListener.class);
 
     private final ObjectMapper mapperJson;
     private final PedidoSqsMapper pedidoMapper;
@@ -24,18 +28,15 @@ public class SqsPedidoListener {
     }
 
     @SqsListener(value = "${aws.order-event}")
-    public void processarMensagem(String payload) {
-        try {
-            PedidoSqsEventDTO evento = mapperJson.readValue(payload, PedidoSqsEventDTO.class);
+    public void processarMensagem(String payload) throws Exception {
+        log.info("Mensagem recebida do SQS: {}", payload);
 
-            PedidoBO pedido = pedidoMapper.toBO(evento);
+        PedidoSqsEventDTO evento = mapperJson.readValue(payload, PedidoSqsEventDTO.class);
 
-            pedidoService.criarPedido(pedido);
+        PedidoBO pedido = pedidoMapper.toBO(evento);
 
-            System.out.println("Pedido processado com sucesso via SQS!");
+        pedidoService.criarPedido(pedido);
 
-        } catch (Exception e) {
-            System.err.println("Erro ao processar mensagem SQS: " + e.getMessage());
-        }
+        log.info("Pedido processado com sucesso via SQS!");
     }
 }
